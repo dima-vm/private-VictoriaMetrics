@@ -1417,6 +1417,8 @@ func (s *Storage) ForceMergePartitions(partitionNamePrefix string) error {
 	return s.tb.ForceMergePartitions(partitionNamePrefix)
 }
 
+type BlockStreamReaderTest = blockStreamReader
+
 var rowsAddedTotal uint64
 
 // AddRows adds the given mrs to s.

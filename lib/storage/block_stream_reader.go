@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fs"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 )
+
+type BlockStreamReader2 = blockStreamReader
 
 // blockStreamReader represents block stream reader.
 type blockStreamReader struct {
@@ -107,6 +110,67 @@ func (bsr *blockStreamReader) String() string {
 		return bsr.path
 	}
 	return bsr.ph.String()
+}
+
+// String returns human-readable representation of bsr.
+func (bsr *blockStreamReader) Test(path string, sum *float64) error {
+	err := bsr.InitFromFilePart(path)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create("/home/dl/work/baraded/downsample/data/storage/g.csv")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString("i,timestamp,value,valueMarshalType\n")
+	if err != nil {
+		return err
+	}
+
+	//var a map[encoding.MarshalType]int32 = make(map[encoding.MarshalType]int32)
+	for bsr.NextBlock() {
+		//logger.Infof("%#v\n", bsr.Block.bh.TSID.JobID)
+		//logger.Infof("%d\n", bsr.Block.bh.TSID.JobID)
+		/*
+			if (bsr.Block.bh.TSID.MetricID != 1624947983067741876) {
+				continue
+			}
+			if (bsr.Block.bh.MinTimestamp != 1624949663158) {
+				continue
+			}
+		*/
+		err := bsr.Block.UnmarshalData()
+		if err != nil {
+			return err
+		}
+		for i := range bsr.Block.values {
+			//timestamp := bsr.Block.timestamps[i]
+			value := bsr.Block.values[i]
+
+			//bi := bsr.blocksCount
+			//if bi >= 811 {
+			//	bi -= 810
+			//}
+			//_, err = fmt.Fprint(f, bi, ",", timestamp, ",", value, ",", bsr.Block.bh.ValuesMarshalType, "\n")
+			//if err != nil {
+			//	return err
+			//}
+
+			*sum += float64(value)
+		}
+		//a[bsr.Block.bh.ValuesMarshalType] = a[bsr.Block.bh.ValuesMarshalType] + 1
+		//logger.Infof("%#v\n", bsr.Block.timestampsData)
+		//break
+	}
+	//logger.Infof("%#v\n", a)
+
+	//logger.Infof("Read %d rows", bsr.rowsCount)
+	//var row metaindexRow = bsr.mrs[0]
+	//logger.Infof("%d", row.TSID.MetricID)
+	return nil
 }
 
 // InitFromInmemoryPart initializes bsr from the given mp.
